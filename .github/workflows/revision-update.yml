@@ -1,0 +1,41 @@
+name: OSRS Revision Update
+
+on:
+  schedule:
+    - cron: 0/30 * * * *
+
+jobs:
+  revision-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Get revision
+        run: |
+          revisionOutput=$(java -jar target/gamepack-hosting-1.0-SNAPSHOT-jar-with-dependencies.jar --revision)
+          revision=$(echo "$revisionOutput" | grep -oP '^\d{3}')
+          echo "REVISION=$revision" >> $GITHUB_ENV
+
+      - name: Download gamepack
+        run: |
+          mkdir -p net/runelite/rs/vanila/$REVISION/
+          java -jar target/gamepack-hosting-1.0-SNAPSHOT-jar-with-dependencies.jar --save net/runelite/rs/vanilla/$REVISION/vanilla-$REVISION.jar --pom net/runelite/rs/vanilla/$REVISION/vanilla-$REVISION.pom --groupId net.runelite.rs --artifactId vanilla --version $REVISION
+
+      - name: Push to github
+        run: |
+          git config --global user.email "melxin@tutamail.com"
+          git config --global user.name "Github Actions"
+          git add .
+          git commit -m "release - $REVISION"
+          git push https://melxin:${{ secrets.REPO_PAT }}@github.com/melxin/osrs-gamepack-hosting.git master
