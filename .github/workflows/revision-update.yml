@@ -1,6 +1,9 @@
 name: OSRS Revision Update
 
 on:
+  push:
+    branches:
+      - dev
   schedule:
     - cron: 0/30 * * * *
 
@@ -24,7 +27,14 @@ jobs:
       - name: Get revision
         run: |
           revisionOutput=$(java -jar target/gamepack-hosting-1.0-SNAPSHOT-jar-with-dependencies.jar --revision)
-          revision=$(echo "$revisionOutput" | grep -oP '^\d{3}')
+          revision=$(echo "$revisionOutput" | grep -oP '^\d{3}(\.\d)?')
+          echo "Revision: $revision"
+
+          if [[ -z "$revision" || ! "$revision" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "Revision is invalid!"
+              exit 1
+          fi
+
           echo "REVISION=$revision" >> $GITHUB_ENV
 
       - name: Download gamepack
@@ -37,5 +47,18 @@ jobs:
           git config --global user.email "melxin@tutamail.com"
           git config --global user.name "Github Actions"
           git add .
-          git commit -m "release - $REVISION"
-          git push https://melxin:${{ secrets.REPO_PAT }}@github.com/melxin/osrs-gamepack-hosting.git master
+
+          if ! git diff --cached --quiet; then
+            modified_files=$(git diff --cached --name-only)
+            jar_changed=$(echo "$modified_files" | grep -E '\.jar$')
+            pom_changed=$(echo "$modified_files" | grep -E '\.pom$')
+
+            if [ -n "$jar_changed" ] && [ -n "$pom_changed" ]; then
+              git commit -m "release - $REVISION"
+              git push https://melxin:${{ secrets.REPO_PAT }}@github.com/melxin/osrs-gamepack-hosting.git master
+            else
+              echo "Both .jar and .pom files must be changed to commit."
+            fi
+          else
+            echo "No changes to commit."
+          fi
