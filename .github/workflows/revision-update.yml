@@ -51,13 +51,12 @@ jobs:
           if ! git diff --cached --quiet; then
             modified_files=$(git diff --cached --name-only)
             jar_changed=$(echo "$modified_files" | grep -E '\.jar$')
-            pom_changed=$(echo "$modified_files" | grep -E '\.pom$')
 
-            if [ -n "$jar_changed" ] && [ -n "$pom_changed" ]; then
+            if [ -n "$jar_changed" ]; then
               git commit -m "release - $REVISION"
               git push https://melxin:${{ secrets.REPO_PAT }}@github.com/melxin/osrs-gamepack-hosting.git master
             else
-              echo "Both .jar and .pom files must be changed to commit."
+              echo ".jar file must be changed to commit."
             fi
           else
             echo "No changes to commit."
