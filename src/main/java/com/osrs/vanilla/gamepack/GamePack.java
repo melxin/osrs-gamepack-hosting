@@ -59,7 +59,7 @@ public class GamePack
 		return GamePack.Holder.INSTANCE;
 	}
 
-	private final String javConfigUrl = "http://oldschool1.runescape.com/jav_config.ws";
+	private final String javConfigUrl = "https://oldschool.config.runescape.com/jav_config.ws";
 	private Properties javConfigProperties;
 	private int revision;
 	private String jarDownload;
